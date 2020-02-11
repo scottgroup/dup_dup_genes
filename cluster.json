@@ -1,0 +1,18 @@
+{
+    "__default__":
+    {
+        "job-name": "SM.{rule}",
+        "nodes": "1",
+        "cpus-per-task": "1",
+        "mem": "8G",
+        "time": "0-1:00:00",
+        "mail-user": "joel.simoneau@usherbrooke.ca",
+        "mail-type": "FAIL"
+    },
+    "blasting_fasta":
+    {
+        "time": "0-12:00:00",
+        "mem": "92G",
+        "cpus-per-task": "40"
+    }
+}
