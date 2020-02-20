@@ -9,14 +9,18 @@ wildcard_constraints:
 
 
 def get_parsed(wildcards):
+    """ Returns the parsed BLAST files for the combine function """
     file = "data/{annotation}/genes/seq.{{id}}.fa".format(**wildcards)
     parsed = "results/{annotation}/blast/parsed_{{id}}.tsv".format(**wildcards)
     ids = glob_wildcards(file)
     return expand(parsed, id=ids.id)
 
+
 rule all:
+    """ Results files """
     input:
-        "stuff"
+        "results/ensembl99/blast.tsv",
+        "results/ensembl99/blast_stuff.tsv"
 
 
 rule download_annotation:
@@ -41,6 +45,7 @@ rule download_genome:
 
 
 rule create_gene_bed12:
+    """ Create a BED12 for all genes and for the longuest spliced transcript """
     input:
         gtf = rules.download_annotation.output.annotation
     output:
@@ -52,6 +57,7 @@ rule create_gene_bed12:
 
 
 rule extract_gene_sequences:
+    """ From the BED12 file, extract all sequence in a FASTA file """
     input:
         bed12 = rules.create_gene_bed12.output.bed12,
         genome = rules.download_genome.output.genome
@@ -64,6 +70,7 @@ rule extract_gene_sequences:
 
 
 rule truncate_fasta_gene_names:
+    """ Remove the coordinates from the identifiers in the sequence FASTA """
     input:
         fasta = rules.extract_gene_sequences.output.fasta
     output:
@@ -73,6 +80,9 @@ rule truncate_fasta_gene_names:
 
 
 rule extract_seq_len_from_fasta:
+    """
+        From the sequence FASTA, extract the nucleotide lenght of all sequences
+    """
     input:
         fasta = rules.truncate_fasta_gene_names.output.fasta
     output:
@@ -85,6 +95,7 @@ rule extract_seq_len_from_fasta:
 
 
 rule creating_blast_db:
+    """ Indexing the sequence FASTA for the BLAST software """
     input:
         fasta = rules.truncate_fasta_gene_names.output.fasta
     output:
@@ -98,6 +109,7 @@ rule creating_blast_db:
 
 
 rule splitting_fasta:
+    """ Splitting the sequence FASTA for parallelization """
     input:
         fasta = rules.truncate_fasta_gene_names.output.fasta
     output:
@@ -109,6 +121,7 @@ rule splitting_fasta:
 
 
 rule blasting_fasta:
+    """  """
     input:
         db = rules.creating_blast_db.output.db,
         tkn = rules.splitting_fasta.output.tkn
@@ -126,6 +139,7 @@ rule blasting_fasta:
 
 
 rule parsing_blast_results:
+    """ Parsing the BLAST results. """
     input:
         blast = rules.blasting_fasta.output.results,
         seq_len = rules.extract_seq_len_from_fasta.output.seq_len
@@ -138,8 +152,50 @@ rule parsing_blast_results:
 
 
 rule combine_parsed_results:
+    """ """
     input:
-        get_parsed,
+        gtf = rules.download_annotation.output.annotation,
+        files = get_parsed,
         tkn = "data/{annotation}/genes/.tkn"
     output:
-        "results_{annotation}"
+        results = "results/{annotation}/blast.tsv"
+    conda:
+        "envs/python.yaml"
+    script:
+        "scripts/combine_parsed_results.py"
+
+
+rule explore_results:
+    input:
+        data = rules.combine_parsed_results.output.results
+    output:
+        results = "results/{annotation}/blast_stuff.tsv"
+    conda:
+        "envs/python.yaml"
+    script:
+        "scripts/explore_results.py"
+
+
+rule prepare_cytoscape_data:
+    input:
+        gtf = rules.download_annotation.output.annotation,
+        data = rules.combine_parsed_results.output.results
+    output:
+        node = "results/{annotation}/cytoscape/node_score{score}.tsv",
+        edge = "results/{annotation}/cytoscape/edge_score{score}.tsv"
+    conda:
+        "envs/python.yaml"
+    script:
+        "scripts/prepare_cytoscape_data.py"
+
+
+rule scoring_edges_data:
+    input:
+        gtf = rules.download_annotation.output.annotation,
+        data = rules.combine_parsed_results.output.results
+    output:
+        "results/{annotation}/scoring/score{score}.tsv"
+    conda:
+        "envs/python.yaml"
+    script:
+        "scripts/scoring_edges_data.py"
