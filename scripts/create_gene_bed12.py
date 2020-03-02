@@ -34,9 +34,6 @@ gtf = pd.read_csv(
     names=col_names_gtf, dtype=col_dtypes
 )
 
-# # Correcting for offset
-# gtf['start'] -= 1
-
 # Extracting gene_id
 gtf['gene_id'] = gtf['attributes'].str.extract('gene_id \"(.*?)\"').astype("string")
 gtf['transcript_id'] = gtf['attributes'].str.extract('transcript_id \"(.*?)\"').astype("string")
@@ -75,7 +72,6 @@ exon_lens_dict = {
     **neg_ex_gtf.groupby('transcript_id')['ex_len'].apply(list).apply(lambda x: ','.join([str(num) for num in x[::-1]])).to_dict()
 }
 
-# tr_gtf.set_index('transcript_id', inplace=True)
 tr_gtf.loc[:, 'ex_start'] = tr_gtf['transcript_id'].map(exon_starts_dict)
 tr_gtf.loc[:, 'ex_len'] = tr_gtf['transcript_id'].map(exon_lens_dict)
 tr_gtf.loc[:, 'ex_count'] = tr_gtf['transcript_id'].map(exon_count_dict)

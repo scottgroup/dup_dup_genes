@@ -1,7 +1,5 @@
 configfile: "config.json"
 
-import glob
-
 nsplit = 20
 
 wildcard_constraints:
@@ -121,7 +119,7 @@ rule splitting_fasta:
 
 
 rule blasting_fasta:
-    """  """
+    """ Main BLASTing functions """
     input:
         db = rules.creating_blast_db.output.db,
         tkn = rules.splitting_fasta.output.tkn
@@ -152,7 +150,7 @@ rule parsing_blast_results:
 
 
 rule combine_parsed_results:
-    """ """
+    """ Combining the different results in a file """
     input:
         gtf = rules.download_annotation.output.annotation,
         files = get_parsed,
@@ -165,36 +163,15 @@ rule combine_parsed_results:
         "scripts/combine_parsed_results.py"
 
 
-rule explore_results:
-    input:
-        data = rules.combine_parsed_results.output.results
-    output:
-        results = "results/{annotation}/blast_stuff.tsv"
-    conda:
-        "envs/python.yaml"
-    script:
-        "scripts/explore_results.py"
-
-
-rule prepare_cytoscape_data:
-    input:
-        gtf = rules.download_annotation.output.annotation,
-        data = rules.combine_parsed_results.output.results
-    output:
-        node = "results/{annotation}/cytoscape/node_score{score}.tsv",
-        edge = "results/{annotation}/cytoscape/edge_score{score}.tsv"
-    conda:
-        "envs/python.yaml"
-    script:
-        "scripts/prepare_cytoscape_data.py"
-
-
 rule scoring_edges_data:
+    """ Plotting and describing results """
     input:
         gtf = rules.download_annotation.output.annotation,
         data = rules.combine_parsed_results.output.results
     output:
-        "results/{annotation}/scoring/score{score}.tsv"
+        bar_plot = "results/{annotation}/plot/bar_plot{score}.svg",
+    params:
+        graph_path = lambda wildcards: "results/{annotation}/graph/{{biotype}}.tsv"
     conda:
         "envs/python.yaml"
     script:
